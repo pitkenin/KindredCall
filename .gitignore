@@ -1,0 +1,23 @@
+# Android
+app/.gradle/
+app/build/
+app/local.properties
+app/.idea/workspace.xml
+app/.idea/libraries/
+app/.idea/caches/
+app/*.iml
+app/.kotlin/
+
+# Node.js
+backend/node_modules/
+backend/.env
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Project Specific
+.artifacts/
+personal/
+app/.artifacts/
+.tmp.driveupload/
+*.apk
+*.key
