@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.kindredcall.app"
-    compileSdk = 34
+    compileSdk = 35
 
     val localProperties = Properties()
     val localPropertiesFile = rootProject.file("local.properties")
@@ -25,7 +25,7 @@ android {
     defaultConfig {
         applicationId = "com.kindredcall.app"
         minSdk = 24
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 

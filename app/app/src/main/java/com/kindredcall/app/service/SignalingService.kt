@@ -85,7 +85,6 @@ class SignalingService : Service(), SignalingClient.Listener {
         }
 
         webRtcClient.storeIncomingOffer(sdp)
-        webRtcClient.callTonePlayer.startRingtone()
 
         // Always post the notification with fullScreenIntent. 
         // This is the most reliable way to wake the device and show the call UI 

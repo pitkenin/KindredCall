@@ -92,12 +92,6 @@ object CallNotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Custom Layout for Heads-Up Notification
-        val remoteViews = RemoteViews(context.packageName, R.layout.notification_incoming_call).apply {
-            setOnClickPendingIntent(R.id.btn_answer, answerPendingIntent)
-            setOnClickPendingIntent(R.id.btn_decline, declinePendingIntent)
-        }
-
         return NotificationCompat.Builder(context, INCOMING_CALL_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle(context.getString(R.string.notif_title_incoming))
@@ -107,12 +101,9 @@ object CallNotificationHelper {
             .setOngoing(true)
             .setAutoCancel(false)
             .setFullScreenIntent(fullScreenPendingIntent, true)
-            .setCustomHeadsUpContentView(remoteViews)
-            .setStyle(NotificationCompat.DecoratedCustomViewStyle())
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, context.getString(R.string.btn_decline), declinePendingIntent)
             .addAction(android.R.drawable.stat_sys_phone_call, context.getString(R.string.btn_answer), answerPendingIntent)
             .setVibrate(longArrayOf(0, 1000, 500, 1000, 500, 1000))
-            .setSound(android.provider.Settings.System.DEFAULT_RINGTONE_URI)
             .build()
     }
 

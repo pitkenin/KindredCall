@@ -14,7 +14,10 @@ The "Grandma" side of the app has exactly **zero** menus. No tabs, no settings, 
 ## ✨ Core Features
 
 ### 1. Bulletproof Full-Screen Calling
-Traditional notifications are easy to miss or accidentally swipe away. KindredCall uses "Full Screen Intents" and specialized OEM-bypass logic (for Xiaomi/Redmi devices) to ensure that when a call comes in, it **takes over the screen immediately**, regardless of whether the phone is locked or the screen is off.
+Traditional notifications are easy to miss or accidentally swipe away. KindredCall uses "Full Screen Intents" and specialized logic to ensure that when a call comes in, it **takes over the screen immediately**, regardless of whether the phone is locked or unlocked. 
+
+- **Focus Hijack**: Developed a "Immediate Cancellation" logic where the system notification is programmatically killed the millisecond the Activity launches, preventing annoying Heads-Up banners from overlapping the call UI.
+- **OEM-Bypass**: Specialized logic for Xiaomi/Redmi devices to handle their unique background-start restrictions.
 
 ### 2. The "Latest-Only" Photo Frame
 Unlike chat apps that bury photos in a feed, KindredCall features a persistent live photo frame.
