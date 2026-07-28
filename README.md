@@ -11,6 +11,8 @@ The "Grandma" side of the app has exactly **zero** menus. No tabs, no settings, 
 - **One Purpose**: Large, high-visibility buttons for the two core actions: Calling and Sharing.
 - **High Visibility**: Massive typography (80sp+) and high-contrast colors ensure accessibility for users with vision impairments.
 
+<img src="screenshot.png" alt="screenshot image" width="500">
+
 ## ✨ Core Features
 
 ### 1. Bulletproof Full-Screen Calling
