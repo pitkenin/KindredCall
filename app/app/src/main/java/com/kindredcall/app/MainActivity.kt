@@ -9,14 +9,16 @@ import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -31,6 +33,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -67,6 +70,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.os.LocaleListCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -84,7 +88,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         SignalingService.start(this)
@@ -365,6 +369,11 @@ private fun MainScreen(
             }
         }
 
+        // Language Toggle (Corner)
+        if (isYulia) {
+            LanguageToggle(modifier = Modifier.align(Alignment.TopStart).padding(16.dp))
+        }
+
         // Connection Status Indicator (Diagnostics)
         Text(
             text = if (isConnected) stringResource(R.string.signal_connected) else stringResource(R.string.signal_disconnected),
@@ -489,6 +498,56 @@ private fun PermissionSetupCenter(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun LanguageToggle(modifier: Modifier = Modifier) {
+    val currentLocale = AppCompatDelegate.getApplicationLocales().get(0)?.language ?: "en"
+
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFF37474F))
+            .padding(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        LanguageButton(
+            text = "\uD83C\uDDEC\uD83C\uDDE7", // UK Flag
+            isSelected = currentLocale == "en",
+            onClick = {
+                val appLocale: LocaleListCompat = LocaleListCompat.forLanguageTags("en")
+                AppCompatDelegate.setApplicationLocales(appLocale)
+            }
+        )
+        LanguageButton(
+            text = "\uD83C\uDDF7\uD83C\uDDFA", // RU Flag
+            isSelected = currentLocale == "ru",
+            onClick = {
+                val appLocale: LocaleListCompat = LocaleListCompat.forLanguageTags("ru")
+                AppCompatDelegate.setApplicationLocales(appLocale)
+            }
+        )
+    }
+}
+
+@Composable
+private fun LanguageButton(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .background(if (isSelected) Color(0xFF2E7D32) else Color.Transparent)
+            .border(2.dp, if (isSelected) Color.White else Color.Gray, CircleShape)
+            .clickable { onClick() },
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text = text, fontSize = 24.sp)
     }
 }
 
