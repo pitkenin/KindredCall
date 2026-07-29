@@ -180,97 +180,8 @@ private fun CallScreen(
             .fillMaxSize()
             .background(Color(0xFF1A1A1A)), // Unified dark background
     ) {
-        // If it's an outgoing call OR we have already answered an incoming call
-        if (callRole == WebRtcClient.CallRole.OUTGOING || isCallAnswered) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                // Remote Video (Full Screen)
-                if (connectionState == WebRtcClient.ConnectionState.ACTIVE && remoteVideoTrack != null) {
-                    StreamVideoRenderer(
-                        videoTrack = remoteVideoTrack,
-                        eglBaseContext = eglBaseContext,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                } else {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            text = if (connectionState == WebRtcClient.ConnectionState.FAILED) stringResource(R.string.calling_error) else stringResource(R.string.calling_connection),
-                            color = Color.White,
-                            fontSize = 40.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(24.dp),
-                        )
-                        if (connectionState != WebRtcClient.ConnectionState.FAILED) {
-                            CircularProgressIndicator(
-                                color = Color(0xFF00C853),
-                                strokeWidth = 8.dp,
-                                modifier = Modifier.size(80.dp)
-                            )
-                        }
-                    }
-                }
-
-                // Local Video (Self View - Small window)
-                if (localVideoTrack != null) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(16.dp)
-                            .fillMaxWidth(0.35f)
-                            .aspectRatio(0.7f)
-                            .shadow(8.dp, RoundedCornerShape(12.dp))
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.DarkGray),
-                    ) {
-                        StreamVideoRenderer(
-                            videoTrack = localVideoTrack,
-                            eglBaseContext = eglBaseContext,
-                            modifier = Modifier.fillMaxSize(),
-                            isMirrored = true,
-                        )
-                    }
-                }
-
-                // End Call Button
-                Button(
-                    onClick = onDecline,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 64.dp, start = 32.dp, end = 32.dp)
-                        .fillMaxWidth()
-                        .height(90.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFC62828), // Consistent red
-                        contentColor = Color.White,
-                    ),
-                    shape = RoundedCornerShape(24.dp),
-                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = null,
-                            modifier = Modifier.size(40.dp)
-                        )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = stringResource(R.string.btn_decline),
-                            fontSize = 26.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            maxLines = 1
-                        )
-                    }
-                }
-            }
-        } else {
+        // If it's an incoming call that hasn't been answered yet
+        if (callRole == WebRtcClient.CallRole.INCOMING && !isCallAnswered) {
             // Incoming Call UI (Ringing)
             val isYulia = BuildConfig.USER_TYPE == "YULIA"
             val callerName = if (isYulia) stringResource(R.string.caller_grandma) else stringResource(R.string.caller_yulia)
@@ -388,6 +299,96 @@ private fun CallScreen(
                                 softWrap = false
                             )
                         }
+                    }
+                }
+            }
+        } else if (callRole == WebRtcClient.CallRole.OUTGOING || isCallAnswered) {
+            // Active/Outgoing UI
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Remote Video (Full Screen)
+                if (connectionState == WebRtcClient.ConnectionState.ACTIVE && remoteVideoTrack != null) {
+                    StreamVideoRenderer(
+                        videoTrack = remoteVideoTrack,
+                        eglBaseContext = eglBaseContext,
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                } else {
+                    Column(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = if (connectionState == WebRtcClient.ConnectionState.FAILED) stringResource(R.string.calling_error) else stringResource(R.string.calling_connection),
+                            color = Color.White,
+                            fontSize = 40.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(24.dp),
+                        )
+                        if (connectionState != WebRtcClient.ConnectionState.FAILED) {
+                            CircularProgressIndicator(
+                                color = Color(0xFF00C853),
+                                strokeWidth = 8.dp,
+                                modifier = Modifier.size(80.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Local Video (Self View - Small window)
+                if (localVideoTrack != null) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(16.dp)
+                            .fillMaxWidth(0.35f)
+                            .aspectRatio(0.7f)
+                            .shadow(8.dp, RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.DarkGray),
+                    ) {
+                        StreamVideoRenderer(
+                            videoTrack = localVideoTrack,
+                            eglBaseContext = eglBaseContext,
+                            modifier = Modifier.fillMaxSize(),
+                            isMirrored = true,
+                        )
+                    }
+                }
+
+                // End Call Button
+                Button(
+                    onClick = onDecline,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 64.dp, start = 32.dp, end = 32.dp)
+                        .fillMaxWidth()
+                        .height(90.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFC62828), // Consistent red
+                        contentColor = Color.White,
+                    ),
+                    shape = RoundedCornerShape(24.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = null,
+                            modifier = Modifier.size(40.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = stringResource(R.string.btn_decline),
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            maxLines = 1
+                        )
                     }
                 }
             }

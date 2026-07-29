@@ -67,6 +67,7 @@ class SignalingService : Service(), SignalingClient.Listener {
             "candidate" -> webRtcClient.handleRemoteCandidate(message)
             "hangup" -> {
                 Log.d(TAG, "Received hangup signal from remote, ending call locally")
+                CallNotificationHelper.cancelIncomingCallNotification(this)
                 webRtcClient.endCall(shouldSendSignal = false)
             }
         }

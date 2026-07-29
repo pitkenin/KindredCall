@@ -32,6 +32,14 @@ Sharing a photo can be intimidating. I implemented a "One-Tap" feature for Grand
 ### 4. Network Resilience (DPI Bypass)
 This app was built to work in restricted networks where standard VOIP protocols are often throttled or blocked by Deep Packet Inspection (DPI). By using a custom Node.js signaling server and a dedicated TURN server over TCP (Port 443), KindredCall maintains stable connections where mainstream apps struggle.
 
+### 5. External Automation (Intents)
+
+KindredCall broadcasts global intents to allow integration with automation tools like MacroDroid, Tasker, or custom apps.
+
+- **`com.kindredcall.CALL_ACTIVE`**: Broadcast when a call starts (outgoing) or when an incoming call is received (ringing).
+- **`com.kindredcall.CALL_ENDED`**: Broadcast when a call is disconnected, declined, or finished.
+
+
 ## 🛠️ Technical Deep Dive
 
 ### Android (Kotlin / Jetpack Compose)
