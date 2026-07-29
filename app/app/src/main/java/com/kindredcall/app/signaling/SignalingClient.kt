@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class SignalingClient(
-    private val okHttpClient: OkHttpClient = OkHttpClient(),
+    private val okHttpClient: OkHttpClient,
 ) {
     private val clientId = UUID.randomUUID().toString()
     interface Listener {
@@ -78,7 +78,7 @@ class SignalingClient(
                 }
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                    Log.e(TAG, "WebSocket failure", t)
+                    Log.e(TAG, "WebSocket failure: Ping timeout - connection considered dead, reconnecting", t)
                     handleDisconnect()
                 }
             },

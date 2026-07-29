@@ -70,9 +70,8 @@ class CallActivity : ComponentActivity() {
         val app = application as KindredCallApplication
         val webRtcClient = app.webRtcClient
 
-        // Stop ringtone and notification immediately on entry
+        // Stop notification immediately on entry
         CallNotificationHelper.cancelIncomingCallNotification(this)
-        webRtcClient.callTonePlayer.stopAll()
 
         Log.d("CallActivity", "onCreate: role=${webRtcClient.callRole.value}, action=${intent.action}")
         if (webRtcClient.callRole.value == WebRtcClient.CallRole.NONE) {
@@ -85,6 +84,7 @@ class CallActivity : ComponentActivity() {
         when (intent.action) {
             "ANSWER_CALL" -> {
                 Log.d("CallActivity", "Action: ANSWER_CALL")
+                webRtcClient.callTonePlayer.stopAll()
                 webRtcClient.answerIncomingCall()
             }
             "DECLINE_CALL" -> {
@@ -123,6 +123,7 @@ class CallActivity : ComponentActivity() {
                     eglBaseContext = webRtcClient.eglBaseContext,
                     onAnswer = {
                         Log.d("CallActivity", "User clicked ANSWER")
+                        webRtcClient.callTonePlayer.stopAll()
                         webRtcClient.answerIncomingCall()
                     },
                     onDecline = {
@@ -145,13 +146,13 @@ class CallActivity : ComponentActivity() {
         setIntent(intent)
         val webRtcClient = (application as KindredCallApplication).webRtcClient
 
-        // Stop ringtone and notification immediately
+        // Stop notification immediately
         CallNotificationHelper.cancelIncomingCallNotification(this)
-        webRtcClient.callTonePlayer.stopAll()
         
         when (intent.action) {
             "ANSWER_CALL" -> {
                 Log.d("CallActivity", "onNewIntent: ANSWER_CALL")
+                webRtcClient.callTonePlayer.stopAll()
                 webRtcClient.answerIncomingCall()
             }
             "DECLINE_CALL" -> {

@@ -1,6 +1,7 @@
 package com.kindredcall.app.webrtc
 
 import android.content.Context
+import android.content.Intent
 import android.util.Log
 import com.kindredcall.app.CallConfig
 import com.kindredcall.app.signaling.SignalingClient
@@ -110,6 +111,7 @@ class WebRtcClient(
         _callRole.value = CallRole.OUTGOING
         _isCallAnswered.value = true
         _connectionState.value = ConnectionState.CONNECTING
+        broadcastCallIntent("com.kindredcall.CALL_ACTIVE")
         callTonePlayer.startRingback()
         setupLocalMedia()
         createOffer()
@@ -118,6 +120,8 @@ class WebRtcClient(
     fun storeIncomingOffer(sdp: String) {
         _callRole.value = CallRole.INCOMING
         pendingOfferSdp = sdp
+        broadcastCallIntent("com.kindredcall.CALL_ACTIVE")
+        callTonePlayer.startRingtone()
     }
 
     fun answerIncomingCall() {
@@ -175,6 +179,7 @@ class WebRtcClient(
         if (shouldSendSignal && _callRole.value != CallRole.NONE) {
             signalingClient.sendHangup()
         }
+        broadcastCallIntent("com.kindredcall.CALL_ENDED")
         callTonePlayer.stopAll()
         callAudioManager.stopCallAudio()
         
@@ -458,6 +463,12 @@ class WebRtcClient(
         override fun onSetFailure(error: String?) {
             Log.e(TAG, "$label onSetFailure: $error")
         }
+    }
+
+    private fun broadcastCallIntent(action: String) {
+        Log.d(TAG, "Broadcasting intent: $action")
+        val intent = Intent(action)
+        context.sendBroadcast(intent)
     }
 
     companion object {

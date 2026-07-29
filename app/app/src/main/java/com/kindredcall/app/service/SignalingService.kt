@@ -16,6 +16,7 @@ import com.kindredcall.app.signaling.SignalingClient
 import com.kindredcall.app.webrtc.WebRtcClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -24,6 +25,7 @@ class SignalingService : Service(), SignalingClient.Listener {
     private lateinit var signalingClient: SignalingClient
     private lateinit var webRtcClient: WebRtcClient
     private val serviceScope = CoroutineScope(Dispatchers.Main)
+    private var reconnectJob: Job? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -72,7 +74,8 @@ class SignalingService : Service(), SignalingClient.Listener {
 
     override fun onDisconnected() {
         Log.d(TAG, "Signaling disconnected, reconnecting in 3s...")
-        serviceScope.launch {
+        reconnectJob?.cancel()
+        reconnectJob = serviceScope.launch {
             delay(3000)
             signalingClient.connect()
         }

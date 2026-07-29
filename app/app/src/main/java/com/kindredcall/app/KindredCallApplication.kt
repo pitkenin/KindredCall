@@ -18,6 +18,7 @@ class KindredCallApplication : Application() {
     val okHttpClient: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(10, TimeUnit.SECONDS)
+        .pingInterval(15, TimeUnit.SECONDS)
         .build()
 
     val galleryRepository: GalleryRepository = GalleryRepository(okHttpClient, Gson())
@@ -25,7 +26,7 @@ class KindredCallApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
-        signalingClient = SignalingClient()
+        signalingClient = SignalingClient(okHttpClient)
         webRtcClient = WebRtcClient(this, signalingClient)
     }
 
