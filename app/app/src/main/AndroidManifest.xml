@@ -23,6 +23,7 @@
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
 
     <application
+        android:usesCleartextTraffic="true"
         android:name=".KindredCallApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
