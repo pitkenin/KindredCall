@@ -60,7 +60,10 @@ class SignalingClient(
                 override fun onOpen(webSocket: WebSocket, response: Response) {
                     Log.d(TAG, "WebSocket connected")
                     _isConnected.value = true
-                    listeners.forEach { it.onConnected() }
+                    listeners.forEach { 
+                        runCatching { it.onConnected() }
+                            .onFailure { Log.e(TAG, "Error in onConnected listener", it) }
+                    }
                 }
 
                 override fun onMessage(webSocket: WebSocket, text: String) {
@@ -72,7 +75,10 @@ class SignalingClient(
                             Log.d(TAG, "Received message: $type from $senderId")
                             
                             if (senderId != clientId) {
-                                listeners.forEach { it.onMessage(json) }
+                                listeners.forEach { 
+                                    runCatching { it.onMessage(json) }
+                                        .onFailure { Log.e(TAG, "Error in onMessage listener", it) }
+                                }
                             } else {
                                 Log.v(TAG, "Ignored loopback message: $type")
                             }
@@ -157,7 +163,10 @@ class SignalingClient(
         endpointIndex++
         webSocket = null
         _isConnected.value = false
-        listeners.forEach { it.onDisconnected() }
+        listeners.forEach { 
+            runCatching { it.onDisconnected() }
+                .onFailure { Log.e(TAG, "Error in onDisconnected listener", it) }
+        }
     }
 
     companion object {

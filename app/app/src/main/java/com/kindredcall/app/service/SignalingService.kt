@@ -91,13 +91,30 @@ class SignalingService : Service(), SignalingClient.Listener {
         val type = message.optString("type")
         Log.d(TAG, "Processing message type: $type")
         when (type) {
-            "offer" -> handleIncomingOffer(message.getString("sdp"))
-            "answer" -> webRtcClient.handleRemoteAnswer(message.getString("sdp"))
+            "offer" -> {
+                val sdp = message.optString("sdp")
+                if (sdp.isBlank()) {
+                    Log.w(TAG, "Received offer with blank SDP")
+                    return
+                }
+                handleIncomingOffer(sdp)
+            }
+            "answer" -> {
+                val sdp = message.optString("sdp")
+                if (sdp.isBlank()) {
+                    Log.w(TAG, "Received answer with blank SDP")
+                    return
+                }
+                webRtcClient.handleRemoteAnswer(sdp)
+            }
             "candidate" -> webRtcClient.handleRemoteCandidate(message)
             "hangup" -> {
                 Log.d(TAG, "Received hangup signal from remote, ending call locally")
                 CallNotificationHelper.cancelIncomingCallNotification(this)
                 webRtcClient.endCall(shouldSendSignal = false)
+            }
+            else -> {
+                Log.w(TAG, "Unknown signaling message type: $type")
             }
         }
     }

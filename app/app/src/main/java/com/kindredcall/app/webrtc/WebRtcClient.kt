@@ -159,27 +159,28 @@ class WebRtcClient(
         }
     }
 
-    fun handleSignalingMessage(message: JSONObject) {
-        when (message.getString("type")) {
-            "offer" -> Unit
-            "answer" -> handleRemoteAnswer(message.getString("sdp"))
-            "candidate" -> handleRemoteCandidate(message)
-            "hangup" -> endCall()
-        }
-    }
-
     fun handleRemoteAnswer(sdp: String) {
         if (_callRole.value != CallRole.OUTGOING) return
         setRemoteDescription(sdp, SessionDescription.Type.ANSWER)
     }
 
     fun handleRemoteCandidate(message: JSONObject) {
-        val candidate = IceCandidate(
-            message.getString("sdpMid"),
-            message.getInt("sdpMLineIndex"),
-            message.getString("candidate"),
-        )
+        val sdpMid = message.optString("sdpMid")
+        val sdpMLineIndex = message.optInt("sdpMLineIndex", -1)
+        val candidateSdp = message.optString("candidate")
+
+        if (sdpMid.isBlank() || sdpMLineIndex < 0 || candidateSdp.isBlank()) {
+            Log.w(TAG, "Ignored invalid remote ICE candidate: mid=$sdpMid, index=$sdpMLineIndex")
+            return
+        }
+
+        val candidate = IceCandidate(sdpMid, sdpMLineIndex, candidateSdp)
+
         if (peerConnection == null || !isRemoteDescriptionSet) {
+            if (pendingIceCandidates.size >= MAX_PENDING_CANDIDATES) {
+                Log.w(TAG, "Dropped remote ICE candidate: buffer full ($MAX_PENDING_CANDIDATES)")
+                return
+            }
             Log.d(TAG, "Buffering remote ICE candidate (isRemoteDescriptionSet=$isRemoteDescriptionSet)")
             pendingIceCandidates.add(candidate)
         } else {
@@ -518,6 +519,7 @@ class WebRtcClient(
     companion object {
         private const val TAG = "WebRtcClient"
         private const val CALL_TIMEOUT_MS = 60_000L
+        private const val MAX_PENDING_CANDIDATES = 100
         private const val STREAM_ID = "kindredcall"
         private const val AUDIO_TRACK_ID = "audio0"
         private const val VIDEO_TRACK_ID = "video0"
