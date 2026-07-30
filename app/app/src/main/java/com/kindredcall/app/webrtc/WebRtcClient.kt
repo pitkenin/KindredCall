@@ -106,6 +106,7 @@ class WebRtcClient(
     }
 
     fun startOutgoingCall() {
+        Log.d(TAG, "startOutgoingCall() called")
         initialize()
         resetPeerConnection()
         _callRole.value = CallRole.OUTGOING
@@ -126,7 +127,7 @@ class WebRtcClient(
 
     fun answerIncomingCall() {
         val offerSdp = pendingOfferSdp ?: return
-        Log.d(TAG, "Answering incoming call")
+        Log.d(TAG, "answerIncomingCall() called with pending offer")
         initialize()
         resetPeerConnection()
         _callRole.value = CallRole.INCOMING
@@ -211,16 +212,22 @@ class WebRtcClient(
     }
 
     private fun createPeerConnection(): PeerConnection? {
-        val iceServers = listOf(
-            PeerConnection.IceServer.builder(CallConfig.TURN_URL)
+        val iceServers = CallConfig.TURN_HOSTS.flatMap { host ->
+            listOf(
+                "turn:$host:3478?transport=udp",
+                "turns:$host:443?transport=tcp",
+            )
+        }.map { uri ->
+            PeerConnection.IceServer.builder(uri)
                 .setUsername(CallConfig.TURN_USERNAME)
                 .setPassword(CallConfig.TURN_CREDENTIAL)
-                .createIceServer(),
-        )
+                .createIceServer()
+        }
 
         val rtcConfig = PeerConnection.RTCConfiguration(iceServers).apply {
             sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
             continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY
+            iceTransportsType = PeerConnection.IceTransportsType.RELAY
         }
 
         return peerConnectionFactory?.createPeerConnection(
@@ -229,7 +236,7 @@ class WebRtcClient(
                 override fun onSignalingChange(state: PeerConnection.SignalingState?) = Unit
 
                 override fun onIceConnectionChange(state: PeerConnection.IceConnectionState?) {
-                    Log.d(TAG, "ICE connection state: $state")
+                    Log.d(TAG, "ICE connection state change: $state")
                     when (state) {
                         PeerConnection.IceConnectionState.CONNECTED,
                         PeerConnection.IceConnectionState.COMPLETED -> {
@@ -253,10 +260,13 @@ class WebRtcClient(
 
                 override fun onIceConnectionReceivingChange(receiving: Boolean) = Unit
 
-                override fun onIceGatheringChange(state: PeerConnection.IceGatheringState?) = Unit
+                override fun onIceGatheringChange(state: PeerConnection.IceGatheringState?) {
+                    Log.d(TAG, "ICE gathering state change: $state")
+                }
 
                 override fun onIceCandidate(candidate: IceCandidate?) {
                     candidate ?: return
+                    Log.d(TAG, "New ICE Candidate: ${candidate.sdp}")
                     signalingClient.sendIceCandidate(
                         candidate.sdpMid,
                         candidate.sdpMLineIndex,
@@ -285,9 +295,11 @@ class WebRtcClient(
     }
 
     private fun resetPeerConnection() {
+        Log.d(TAG, "resetPeerConnection() - closing previous connection if exists")
         peerConnection?.close()
         peerConnection?.dispose()
         peerConnection = createPeerConnection()
+        Log.d(TAG, "resetPeerConnection() - peerConnection created: ${peerConnection != null}")
     }
 
     private fun setupLocalMedia() {
@@ -322,6 +334,7 @@ class WebRtcClient(
     }
 
     private fun createOffer() {
+        Log.d(TAG, "Creating offer...")
         val constraints = MediaConstraints().apply {
             mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
             mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"))
@@ -330,6 +343,7 @@ class WebRtcClient(
         peerConnection?.createOffer(
             object : SimpleSdpObserver("createOffer") {
                 override fun onCreateSuccess(description: SessionDescription?) {
+                    Log.d(TAG, "createOffer onCreateSuccess")
                     description ?: return
                     val sdpWithBitrate = setMaxBitrate(description.description, 800)
                     val newDescription = SessionDescription(description.type, sdpWithBitrate)
@@ -337,6 +351,7 @@ class WebRtcClient(
                     peerConnection?.setLocalDescription(
                         object : SimpleSdpObserver("setLocalOffer") {
                             override fun onSetSuccess() {
+                                Log.d(TAG, "setLocalOffer onSetSuccess - signaling offer")
                                 signalingClient.sendOffer(newDescription.description)
                             }
                         },
@@ -349,6 +364,7 @@ class WebRtcClient(
     }
 
     private fun createAnswer() {
+        Log.d(TAG, "Creating answer...")
         val constraints = MediaConstraints().apply {
             mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"))
             mandatory.add(MediaConstraints.KeyValuePair("OfferToReceiveVideo", "true"))
@@ -357,6 +373,7 @@ class WebRtcClient(
         peerConnection?.createAnswer(
             object : SimpleSdpObserver("createAnswer") {
                 override fun onCreateSuccess(description: SessionDescription?) {
+                    Log.d(TAG, "createAnswer onCreateSuccess")
                     description ?: return
                     val sdpWithBitrate = setMaxBitrate(description.description, 800)
                     val newDescription = SessionDescription(description.type, sdpWithBitrate)
@@ -364,6 +381,7 @@ class WebRtcClient(
                     peerConnection?.setLocalDescription(
                         object : SimpleSdpObserver("setLocalAnswer") {
                             override fun onSetSuccess() {
+                                Log.d(TAG, "setLocalAnswer onSetSuccess - signaling answer")
                                 signalingClient.sendAnswer(newDescription.description)
                             }
                         },

@@ -21,3 +21,8 @@ app/.artifacts/
 .tmp.driveupload/
 *.apk
 *.key
+
+# other
+backend/ecosystem.config.js
+*.jks
+*.keystore

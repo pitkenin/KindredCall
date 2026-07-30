@@ -1,10 +1,13 @@
 package com.kindredcall.app.service
 
 import android.app.Service
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import android.os.PowerManager
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
@@ -29,6 +32,7 @@ class SignalingService : Service(), SignalingClient.Listener {
 
     override fun onCreate() {
         super.onCreate()
+        Log.d(TAG, "Service onCreate")
         CallNotificationHelper.createNotificationChannels(this)
 
         val app = application as KindredCallApplication
@@ -41,13 +45,30 @@ class SignalingService : Service(), SignalingClient.Listener {
             CallNotificationHelper.buildServiceNotification(this),
         )
         signalingClient.connect()
+        scheduleWatchdog(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Log.d(TAG, "Service onStartCommand")
+        scheduleWatchdog(this)
         return START_STICKY
     }
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        Log.d(TAG, "Service onTaskRemoved - restarting in 1s")
+        val restartServiceIntent = Intent(applicationContext, this.javaClass)
+        restartServiceIntent.setPackage(packageName)
+        val restartServicePendingIntent = PendingIntent.getService(
+            applicationContext, 1, restartServiceIntent, 
+            PendingIntent.FLAG_ONE_SHOT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val alarmService = applicationContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        alarmService.set(AlarmManager.ELAPSED_REALTIME, SystemClock.elapsedRealtime() + 1000, restartServicePendingIntent)
+    }
+
     override fun onDestroy() {
+        Log.d(TAG, "Service onDestroy")
         signalingClient.removeListener(this)
         super.onDestroy()
     }
@@ -74,10 +95,11 @@ class SignalingService : Service(), SignalingClient.Listener {
     }
 
     override fun onDisconnected() {
-        Log.d(TAG, "Signaling disconnected, reconnecting in 3s...")
+        val delayMs = (3000..8000).random().toLong()
+        Log.d(TAG, "Signaling disconnected, reconnecting in ${delayMs}ms...")
         reconnectJob?.cancel()
         reconnectJob = serviceScope.launch {
-            delay(3000)
+            delay(delayMs)
             signalingClient.connect()
         }
     }
@@ -136,10 +158,46 @@ class SignalingService : Service(), SignalingClient.Listener {
     companion object {
         private const val TAG = "SignalingService"
         private const val WAKE_LOCK_TIMEOUT_MS = 10_000L
+        private const val WATCHDOG_INTERVAL_MS = 15 * 60 * 1000L // 15 minutes
 
         fun start(context: Context) {
             val intent = Intent(context, SignalingService::class.java)
             ContextCompat.startForegroundService(context, intent)
+        }
+
+        fun scheduleWatchdog(context: Context) {
+            val intent = Intent(context, WatchdogReceiver::class.java).apply {
+                action = WatchdogReceiver.ACTION_WATCHDOG_TIMER
+            }
+            val pendingIntent = PendingIntent.getBroadcast(
+                context,
+                0,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            
+            val triggerAt = SystemClock.elapsedRealtime() + WATCHDOG_INTERVAL_MS
+            
+            try {
+                // On Android 12+, we should ideally check canScheduleExactAlarms()
+                // but for now we catch SecurityException to prevent crashes.
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                    triggerAt,
+                    pendingIntent
+                )
+                Log.d(TAG, "Watchdog scheduled in 15m")
+            } catch (e: SecurityException) {
+                Log.e(TAG, "SecurityException: Cannot schedule exact alarm. Falling back to non-exact.", e)
+                alarmManager.setAndAllowWhileIdle(
+                    AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                    triggerAt,
+                    pendingIntent
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to schedule watchdog", e)
+            }
         }
     }
 }

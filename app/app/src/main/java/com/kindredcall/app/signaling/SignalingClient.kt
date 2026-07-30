@@ -1,6 +1,7 @@
 package com.kindredcall.app.signaling
 
 import android.util.Log
+import com.kindredcall.app.BuildConfig
 import com.kindredcall.app.CallConfig
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -16,6 +17,9 @@ import kotlinx.coroutines.flow.asStateFlow
 class SignalingClient(
     private val okHttpClient: OkHttpClient,
 ) {
+    private val endpoints = CallConfig.SIGNALING_URLS
+    private var endpointIndex = 0
+
     private val clientId = UUID.randomUUID().toString()
     interface Listener {
         fun onConnected()
@@ -39,9 +43,15 @@ class SignalingClient(
 
     fun connect() {
         if (webSocket != null) return
+        if (endpoints.isEmpty()) {
+            Log.e(TAG, "No signaling endpoints configured")
+            return
+        }
 
+        val url = endpoints[endpointIndex % endpoints.size]
+        Log.d(TAG, "Connecting to $url")
         val request = Request.Builder()
-            .url(CallConfig.SIGNALING_URL)
+            .url("$url?role=${BuildConfig.USER_TYPE}")
             .build()
 
         webSocket = okHttpClient.newWebSocket(
@@ -144,6 +154,7 @@ class SignalingClient(
     }
 
     private fun handleDisconnect() {
+        endpointIndex++
         webSocket = null
         _isConnected.value = false
         listeners.forEach { it.onDisconnected() }

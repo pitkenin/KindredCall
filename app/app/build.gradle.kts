@@ -5,35 +5,40 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use { stream ->
+        localProperties.load(stream)
+    }
+}
+
+val serverHosts = localProperties.getProperty("SERVER_HOSTS") ?: "app.example.com"
+val turnHosts = localProperties.getProperty("TURN_HOSTS") ?: "turn.example.com"
+val turnUser = localProperties.getProperty("TURN_USER") ?: "user"
+val turnPass = localProperties.getProperty("TURN_PASS") ?: "changeme"
+val sharedToken = localProperties.getProperty("SHARED_TOKEN") ?: "changeme"
+
+val primaryHost = serverHosts.split(",").first().trim()
+val signalingUrls = serverHosts.split(",").joinToString(",") { "wss://${it.trim()}/ws" }
+
 android {
     namespace = "com.kindredcall.app"
     compileSdk = 35
-
-    val localProperties = Properties()
-    val localPropertiesFile = rootProject.file("local.properties")
-    if (localPropertiesFile.exists()) {
-        localPropertiesFile.inputStream().use { stream ->
-            localProperties.load(stream)
-        }
-    }
-
-    val serverIp = localProperties.getProperty("SERVER_IP") ?: "YOUR_SERVER_IP"
-    val turnDomain = localProperties.getProperty("TURN_DOMAIN") ?: "YOUR_TURN_DOMAIN"
-    val turnUser = localProperties.getProperty("TURN_USER") ?: "your_username"
-    val turnPass = localProperties.getProperty("TURN_PASS") ?: "your_password"
 
     defaultConfig {
         applicationId = "com.kindredcall.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
-        buildConfigField("String", "SIGNALING_URL", "\"ws://$serverIp:8080\"")
-        buildConfigField("String", "API_BASE_URL", "\"http://$serverIp:3000\"")
-        buildConfigField("String", "TURN_URL", "\"turns:$turnDomain:443?transport=tcp\"")
+        buildConfigField("String", "SIGNALING_URLS", "\"$signalingUrls\"")
+        buildConfigField("String", "API_BASE_URL", "\"https://$primaryHost\"")
+        buildConfigField("String", "TURN_HOSTS", "\"$turnHosts\"")
         buildConfigField("String", "TURN_USER", "\"$turnUser\"")
         buildConfigField("String", "TURN_PASS", "\"$turnPass\"")
+        buildConfigField("String", "SHARED_TOKEN", "\"$sharedToken\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
