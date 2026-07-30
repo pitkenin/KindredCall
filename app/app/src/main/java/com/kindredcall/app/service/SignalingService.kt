@@ -5,6 +5,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import android.os.SystemClock
@@ -74,6 +75,13 @@ class SignalingService : Service(), SignalingClient.Listener {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            Log.w(TAG, "Foreground service timeout reached for fgsType: $fgsType. Stopping service.")
+            stopSelf()
+        }
+    }
 
     override fun onConnected() {
         Log.d(TAG, "Signaling connected")
