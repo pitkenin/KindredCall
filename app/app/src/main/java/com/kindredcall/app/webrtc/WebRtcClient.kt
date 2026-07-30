@@ -4,8 +4,15 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.kindredcall.app.CallConfig
+import com.kindredcall.app.notification.CallNotificationHelper
 import com.kindredcall.app.signaling.SignalingClient
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONObject
@@ -65,6 +72,9 @@ class WebRtcClient(
     private val _isCallAnswered = MutableStateFlow(false)
     val isCallAnswered: StateFlow<Boolean> = _isCallAnswered.asStateFlow()
 
+    private val clientScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private var callTimeoutJob: Job? = null
+
     val eglBaseContext: EglBase.Context
         get() = eglBase.eglBaseContext
 
@@ -116,6 +126,7 @@ class WebRtcClient(
         callTonePlayer.startRingback()
         setupLocalMedia()
         createOffer()
+        armCallTimeout()
     }
 
     fun storeIncomingOffer(sdp: String) {
@@ -123,9 +134,11 @@ class WebRtcClient(
         pendingOfferSdp = sdp
         broadcastCallIntent("com.kindredcall.CALL_ACTIVE")
         callTonePlayer.startRingtone()
+        armCallTimeout()
     }
 
     fun answerIncomingCall() {
+        callTimeoutJob?.cancel()
         val offerSdp = pendingOfferSdp ?: return
         Log.d(TAG, "answerIncomingCall() called with pending offer")
         initialize()
@@ -176,6 +189,7 @@ class WebRtcClient(
     }
 
     fun endCall(shouldSendSignal: Boolean = true) {
+        callTimeoutJob?.cancel()
         Log.d(TAG, "Ending call, role: ${_callRole.value}, shouldSendSignal: $shouldSendSignal")
         if (shouldSendSignal && _callRole.value != CallRole.NONE) {
             signalingClient.sendHangup()
@@ -183,6 +197,7 @@ class WebRtcClient(
         broadcastCallIntent("com.kindredcall.CALL_ENDED")
         callTonePlayer.stopAll()
         callAudioManager.stopCallAudio()
+        runCatching { CallNotificationHelper.cancelIncomingCallNotification(context) }
         
         pendingOfferSdp = null
         pendingIceCandidates.clear()
@@ -489,8 +504,20 @@ class WebRtcClient(
         context.sendBroadcast(intent)
     }
 
+    private fun armCallTimeout() {
+        callTimeoutJob?.cancel()
+        callTimeoutJob = clientScope.launch {
+            delay(CALL_TIMEOUT_MS)
+            if (_callRole.value != CallRole.NONE && _connectionState.value != ConnectionState.ACTIVE) {
+                Log.w(TAG, "Call timeout reached (role=${_callRole.value}, state=${_connectionState.value}). Ending call.")
+                endCall(shouldSendSignal = true)
+            }
+        }
+    }
+
     companion object {
         private const val TAG = "WebRtcClient"
+        private const val CALL_TIMEOUT_MS = 60_000L
         private const val STREAM_ID = "kindredcall"
         private const val AUDIO_TRACK_ID = "audio0"
         private const val VIDEO_TRACK_ID = "video0"
