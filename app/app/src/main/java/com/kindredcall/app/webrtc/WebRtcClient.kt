@@ -361,7 +361,7 @@ class WebRtcClient(
                 override fun onCreateSuccess(description: SessionDescription?) {
                     Log.d(TAG, "createOffer onCreateSuccess")
                     description ?: return
-                    val sdpWithBitrate = setMaxBitrate(description.description, 800)
+                    val sdpWithBitrate = setMaxBitrate(description.description, 500)
                     val newDescription = SessionDescription(description.type, sdpWithBitrate)
                     
                     peerConnection?.setLocalDescription(
@@ -391,7 +391,7 @@ class WebRtcClient(
                 override fun onCreateSuccess(description: SessionDescription?) {
                     Log.d(TAG, "createAnswer onCreateSuccess")
                     description ?: return
-                    val sdpWithBitrate = setMaxBitrate(description.description, 800)
+                    val sdpWithBitrate = setMaxBitrate(description.description, 500)
                     val newDescription = SessionDescription(description.type, sdpWithBitrate)
 
                     peerConnection?.setLocalDescription(
@@ -420,7 +420,7 @@ class WebRtcClient(
         }
         if (videoLineIndex == -1) return sdp
 
-        // Find the next line after m=video that starts with c= or a=
+        // First, check if b=AS already exists in the video section
         var i = videoLineIndex + 1
         while (i < lines.size && !lines[i].startsWith("m=")) {
             if (lines[i].startsWith("b=AS:")) {
@@ -429,9 +429,25 @@ class WebRtcClient(
             }
             i++
         }
+
+        // If not found, find the c= line to insert after it, as per RFC 4566 (m, i, c, b, k, a)
+        var connectionLineIndex = -1
+        i = videoLineIndex + 1
+        while (i < lines.size && !lines[i].startsWith("m=")) {
+            if (lines[i].startsWith("c=")) {
+                connectionLineIndex = i
+                break
+            }
+            i++
+        }
+
+        if (connectionLineIndex != -1) {
+            lines.add(connectionLineIndex + 1, "b=AS:$maxBitrateKbps")
+        } else {
+            // Fallback: insert right after m=video
+            lines.add(videoLineIndex + 1, "b=AS:$maxBitrateKbps")
+        }
         
-        // If no b=AS line found, insert one
-        lines.add(videoLineIndex + 1, "b=AS:$maxBitrateKbps")
         return lines.joinToString("\r\n")
     }
 
