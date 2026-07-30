@@ -21,6 +21,7 @@ import com.kindredcall.app.webrtc.WebRtcClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -71,6 +72,7 @@ class SignalingService : Service(), SignalingClient.Listener {
     override fun onDestroy() {
         Log.d(TAG, "Service onDestroy")
         signalingClient.removeListener(this)
+        serviceScope.cancel()
         super.onDestroy()
     }
 

@@ -101,16 +101,24 @@ class SignalingClient(
         )
     }
 
-    fun send(message: JSONObject) {
+    fun send(message: JSONObject): Boolean {
         message.put("senderId", clientId)
         val type = message.optString("type")
         Log.d(TAG, "Sending message: $type")
-        webSocket?.send(message.toString())
-            ?: Log.w(TAG, "Attempted to send while disconnected: $message")
+        val ws = webSocket
+        if (ws == null) {
+            Log.w(TAG, "Attempted to send while disconnected: $message")
+            return false
+        }
+        val sent = ws.send(message.toString())
+        if (!sent) {
+            Log.e(TAG, "Failed to send message (buffer full or closing): $type")
+        }
+        return sent
     }
 
-    fun sendOffer(sdp: String) {
-        send(
+    fun sendOffer(sdp: String): Boolean {
+        return send(
             JSONObject().apply {
                 put("type", "offer")
                 put("sdp", sdp)
@@ -118,8 +126,8 @@ class SignalingClient(
         )
     }
 
-    fun sendAnswer(sdp: String) {
-        send(
+    fun sendAnswer(sdp: String): Boolean {
+        return send(
             JSONObject().apply {
                 put("type", "answer")
                 put("sdp", sdp)
@@ -127,8 +135,8 @@ class SignalingClient(
         )
     }
 
-    fun sendIceCandidate(sdpMid: String, sdpMLineIndex: Int, candidate: String) {
-        send(
+    fun sendIceCandidate(sdpMid: String, sdpMLineIndex: Int, candidate: String): Boolean {
+        return send(
             JSONObject().apply {
                 put("type", "candidate")
                 put("sdpMid", sdpMid)
@@ -138,16 +146,16 @@ class SignalingClient(
         )
     }
 
-    fun sendHangup() {
-        send(
+    fun sendHangup(): Boolean {
+        return send(
             JSONObject().apply {
                 put("type", "hangup")
             },
         )
     }
 
-    fun sendRefreshGallery() {
-        send(
+    fun sendRefreshGallery(): Boolean {
+        return send(
             JSONObject().apply {
                 put("type", "refresh_gallery")
             },
